@@ -1,6 +1,5 @@
 import random 
 import cv2 
-
 import os
 
 class Goose:
@@ -17,29 +16,34 @@ class Goose:
         self.size = int(xLimit * 0.1)
         self.image = cv2.resize(hd_image, (self.size, self.size))
     
-    def is_passed_border(self, xLimit: int, yLimit: int) -> bool: 
+    def is_passed_border(self, yLimit: int) -> bool: 
         """
         Check whether this goose has passed the border given
         
-        Return `True` if the object's `curPos[0]` (x coordinate) is 
-        greater than the given `xLimit`, or if the object's `curPos[1]` 
-        (y coordinate) is smaller than the given `yLimit`
+        Return `True` if the object's y coordinate is 
+        smaller than the given `yLimit`
         """
-        if (self.curPos[0] > xLimit or self.curPos[1] < yLimit):
-            return True 
-
-        return False 
+        return self.curPos[1] < yLimit
     
     def set_next_position(self, speed: tuple[int, int]):
         """
         Set the next position of the object based on the speed
         """
-        self.nextPos[0] = self.curPos[0] + speed[0]
+        self.nextPos[0] = self.curPos[0] # + speed[0]
         self.nextPos[1] = self.curPos[1] - speed[1] 
 
         self.curPos = self.nextPos 
 
-    def get_offset(self):
+    def get_position(self):
+        """
+        Return 4 points (in order: `y_offset`, `y_end`, `x_offset`, `x_end`) 
+        determining the location of the current object (for this, we assume 
+        objects are rectangular in shape)
+
+        1. `x_offset`, `y_offset`: top left point of the image 
+        2. `x_end`, `y_end`: bottom right point of the image 
+
+        """
         x_offset = self.curPos[0]
         y_offset = self.curPos[1]
         x_end = x_offset + self.image.shape[1]

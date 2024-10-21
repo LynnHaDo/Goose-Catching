@@ -1,4 +1,4 @@
-from . import Goose
+from . import Goose 
 
 # Import modules for rendering video
 import cv2
@@ -18,6 +18,8 @@ model = mp_hands.Hands(
     min_detection_confidence=0.6
 )
 
+Y_THRESHOLD = 80 # everything moved below this y will be 
+
 class Game:
     """
     Represents a game object with several functionalities
@@ -30,14 +32,13 @@ class Game:
         self.lives = 20 # say we allow 20 lives at the start of the game
         self.score = 0 
         self.speed = [0, 5] # the speed by which objects are moving
-        self.goose_rate = 0.5 # rate by which the geese are generated
+        self.goose_rate = 1 # rate by which the geese are generated
         self.difficulty_level = 1 
         self.game_over = False 
 
         self.curFrame = 0
         self.prevFrame = 0 
-        self.delta_time = 0
-        self.next_goose_time = 0
+        self.next_goose_time = 0 # when the next goose will come. 
 
         # Index finger movement 
         self.index_movement = np.array([[]], np.int32)
@@ -54,21 +55,39 @@ class Game:
         """
         Move the geese created
         """
-        for goose in self.geese: 
-            if goose.is_passed_border(self.xLimit, 80):
+        # Make a copy
+        # We don't want to remove while iterating over a list!
+        geese_copy = self.geese.copy()
+
+        for goose in geese_copy: 
+            if goose.is_passed_border(Y_THRESHOLD):
                 self.lives -= 1 
                 self.geese.remove(goose)
             
-            y_offset, y_end, x_offset, x_end  = goose.get_offset() 
+            y_offset, y_end, x_offset, x_end  = goose.get_position() 
+
+            # This messy code is blending the image of the goose onto the background image
+
             if y_end <= img.shape[0] and x_end <= img.shape[1]:
-                b, g, r, a = cv2.split(goose.image)
+                b, g, r, a = cv2.split(goose.image) 
                 a = a/255.0 
-                goose_rgb = cv2.merge([b*a, g*a, r*a])
-                bg = img[y_offset:y_end, x_offset:x_end,:]
-                bg_b, bg_g, bg_r = cv2.split(bg)
-                bg = cv2.merge([bg_b * (1 - a), bg_g * (1 - a), bg_r * (1 - a)])
-                cv2.add(goose_rgb, bg, bg) 
-                img[y_offset:y_end, x_offset:x_end,:] = bg
+                img1_bgr = cv2.merge([b*a, g*a, r*a]) # multiply all channels of `img1` with the alpha channel
+                
+                img2_roi = img[y_offset:y_end, x_offset:x_end,:]
+                img2_roi_bgr = cv2.split(img2_roi)
+                
+                if (len(img2_roi_bgr) == 0):
+                    return 
+                
+                bg_b, bg_g, bg_r = img2_roi_bgr
+
+                # Merge them with opposite alpha levels
+                img2_roi = cv2.merge([bg_b * (1 - a), bg_g * (1 - a), bg_r * (1 - a)])
+
+                cv2.add(img1_bgr, img2_roi, img2_roi) # Add img1
+                # Replace the portion of the original img2 with the new blended image
+
+                img[y_offset:y_end, x_offset:x_end,:] = img2_roi
 
             goose.set_next_position(self.speed)
     
@@ -86,6 +105,13 @@ class Game:
         return int(d)
     
     def start(self):
+        """
+        Initiate the game. 
+        
+        * Start the video camera 
+        * Stop when `q` is pressed on the keyboard. 
+
+        """
         # Start the video
         cap = cv2.VideoCapture(0)
 
@@ -109,7 +135,7 @@ class Game:
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
             # Draw the divider 
-            cv2.line(img, (0, 80), (w, 80), (118, 62, 250), 3)
+            cv2.line(img, (0, Y_THRESHOLD), (w, Y_THRESHOLD), (118, 62, 250), 3)
 
             # Handle events when the hand is captured on the screen
             if result.multi_hand_landmarks:
@@ -125,19 +151,25 @@ class Game:
                         drawing_styles.get_default_hand_connections_style()
                     )
 
-                    # Catch the movement of the index finger, and 
+                    # Catch the movement of the index finger
                     if hand_landmarks.landmark:
-                        index_landmark = hand_landmarks.landmark[8] 
+                        index_landmark = hand_landmarks.landmark[8] # It's the 8th item in the result
                         # Get the position
                         index_pos = (int(index_landmark.x * w), int(index_landmark.y * h))
-                        cv2.circle(img, index_pos, 18, (28, 49, 235), -1)
+                        # Draw a circle at the index
+                        cv2.circle(img, index_pos, 18, (118, 62, 250), -1)
 
+                        # This is basically drawing the movement of the index finger 
                         self.index_movement = np.append(self.index_movement, index_pos)
 
                         while len(self.index_movement) >= self.index_movement_length:
-                            self.index_movement = np.delete(self.index_movement, len(self.index_movement) - self.index_movement_length, 0)
-                    
-                        for goose in self.geese:
+                            self.index_movement = np.delete(self.index_movement, 
+                                                            len(self.index_movement) - self.index_movement_length, 
+                                                            0)
+
+                        geese_copy = self.geese.copy()
+
+                        for goose in geese_copy:
                             d = self.distance(goose.curPos, index_pos)
                             if (d < goose.size):
                                 self.score += 100 
@@ -145,20 +177,18 @@ class Game:
 
             # Unlock a new level
             if self.score > 0 and self.score % 1000 == 0: 
-                self.difficulty_level = int((self.score / 1000) + 1)
-                self.goose_rate = self.difficulty_level * 0.3 
-                self.speed[0] = self.speed[0] * self.difficulty_level 
-                self.speed[1] = int(self.speed[1] * self.difficulty_level * 0.2)
+                self.difficulty_level = int(self.score / 1000) + 1
+                self.goose_rate = self.difficulty_level * 0.5
+                self.speed[1] = int(2.5 * self.difficulty_level)
             
             if self.lives <= 0: 
                 self.game_over = True 
 
             self.index_movement = self.index_movement.reshape((-1, 1, 2))
             # draw the movement of the index finger
-            cv2.polylines(img, [self.index_movement], False, (28, 49, 235), 15, 0) 
+            cv2.polylines(img, [self.index_movement], False, (118, 62, 250), 15, 0) 
 
             self.curFrame = time.time() 
-            self.delta_time = self.curFrame - self.prevFrame 
 
             # display score metrics
             cv2.putText(img, "Score: " + str(self.score), (int(w * 0.1), 60), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.2, (181, 250, 87), 2)
@@ -168,21 +198,18 @@ class Game:
             self.prevFrame = self.curFrame
 
             if self.game_over:
-                cv2.putText(img, "GAME OVER", (int(w * 0.35), int(h * 0.6)), cv2.FONT_HERSHEY_SIMPLEX, 3, (28, 49, 235), 6)
+                cv2.putText(img, "GAME OVER", (int(w * 0.35), int(h * 0.6)), cv2.FONT_HERSHEY_SIMPLEX, 3, (28, 49, 235), 13)
                 self.geese.clear()
             else: 
                 if (time.time() > self.next_goose_time):
                     self.create_goose() 
                     self.next_goose_time = time.time() + 1/self.goose_rate
-
                 self.move_geese(img)
 
             cv2.imshow(self.title, img)
             
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
-            
+        
         cap.release()
-        cv2.destroyAllWindows()
-    
-    
+        cv2.destroyAllWindows()    

@@ -3,7 +3,7 @@ from objects import Game
 import os 
 
 if __name__ == '__main__':
-    title = "Goose Hunting"
+    title = "Catch the Goose"
     game = Game(title)
 
     game.start()
