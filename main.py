@@ -1,12 +1,20 @@
-from goose import Goose 
+from objects import Game
 
-# Import mediapipe modules
-import mediapipe as mp
-from mediapipe.tasks import python
-from mediapipe.tasks.python import vision
+import os 
 
-# URL to the model
-MODEL_PATH = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task'
+if __name__ == '__main__':
+    title = "Goose Hunting"
+    game = Game(title)
+
+    game.start()
+
+
+            
+
+
+
+    
+
 
 
 
