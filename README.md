@@ -43,9 +43,12 @@
     </li>
     <li>
       <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#run-the-project">Run the Project</a></li>
+        <li><a href="#implementation-guide">Implementation Guide</a></li>
+      </ul>
     </li>
     <li><a href="#works-cited">Works Cited</a></li>
-    <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
 
@@ -97,32 +100,33 @@ Please view the complete list of libraries and packages in `requirements.txt`.
 
 ## Getting started
 
+### Run the project 
+
 1. Clone the repo
 
 ```
-git clone https://github.com/LynnHaDo/GestureVerse.git
+git clone https://github.com/LynnHaDo/Goose-Catching.git
 ```
 
-According to the [Windrift repo](https://github.com/lizadaly/windrift?tab=readme-ov-file):
-
-2. Install a fully-compaticble version of Node:
+2. Once you navigate to the folder, create a virtual environment. `env` will be the folder storing information for setting up the virtual environment. 
 
 ```
-nvm install 18
-nvm use 18
+python3 -m venv env 
 ```
 
-3. Install packages
+* Install dependencies: 
 
 ```
-npm install
+pip install -r requirements.txt
 ```
 
-4. Run the local development environment
+* Activate the virtual environment:
 
 ```
-npm run dev
+source env/bin/activate
 ```
+
+3. Just run the `main.py` program as normal. Make sure to select the right interpreter!
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
