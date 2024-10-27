@@ -114,16 +114,16 @@ git clone https://github.com/LynnHaDo/Goose-Catching.git
 python3 -m venv env 
 ```
 
-* Install dependencies: 
-
-```
-pip install -r requirements.txt
-```
-
 * Activate the virtual environment:
 
 ```
 source env/bin/activate
+```
+
+* Install dependencies: 
+
+```
+pip install -r requirements.txt
 ```
 
 3. Just run the `main.py` program as normal. Make sure to select the right interpreter!
